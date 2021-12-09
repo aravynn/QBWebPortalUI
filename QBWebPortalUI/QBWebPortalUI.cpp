@@ -24,6 +24,10 @@ int monthMinMaxLimit = 12;                      // limit of time for data we hav
 int dayMinMaxLimit = 1;                         // default assuming that start date is DECEMBER 1, 2021 
 int yearMinMaxLimit = 2021;                     // for the new file.
 
+int monthMinMaxEnd = -1;                        // end date for minmax sync
+int dayMinMaxEnd = -1;                           // - 
+int yearMinmaxEnd = -1;                       // -
+bool doCalculateEndDate = false;                // Use this date, or calculate from current date?
 
 
 // Forward declarations of functions included in this code module:
@@ -37,6 +41,9 @@ INT_PTR CALLBACK Password(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 INT_PTR CALLBACK MinTime(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK TimeReset(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK MonthLimit(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
+INT_PTR CALLBACK startDate(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
+
+
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -185,19 +192,26 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             case ID_FILE_LIMITLOADTIME:
                 DialogBox(hInst, MAKEINTRESOURCE(IDD_LIMITLOADTIME), hWnd, MonthLimit);
                 break;
+            case ID_FILE_SETLASTDATE:
+                DialogBox(hInst, MAKEINTRESOURCE(IDD_MINMAXLASTDATE), hWnd, startDate);
+                break;
             case BU_EDITTIME:
                 //MessageBox(hWnd, L"Test", L"Edit Minmax Time Popup!", MB_OK);
                 DialogBox(hInst, MAKEINTRESOURCE(IDD_MINMAXTIME), hWnd, MinTime);
                 break;
             case BU_RUNMIN: 
             {
+                //std::wstring data = L"Year " + std::to_wstring(yearMinMaxLimit) + L" Month " + std::to_wstring(monthMinMaxLimit) + L" day " + std::to_wstring(dayMinMaxLimit);
+
+                //MessageBox(hWnd, data.c_str(), L"Time", MB_OK);
+
                 // test to output the edit box int.
                 if (ifc.getSyncBoolStatus() && !syncRun) {
                     ifc.cancelCurrentAction();
                     ifc.setButtonText(ctrlS::RUNMIN, L"Run Now");
                 }
                 else {
-                    if (!ifc.startMinMax(hWnd, yearMinMaxLimit, monthMinMaxLimit, dayMinMaxLimit)) {
+                    if (!ifc.startMinMax(hWnd, yearMinMaxLimit, monthMinMaxLimit, dayMinMaxLimit, yearMinmaxEnd, monthMinMaxEnd, dayMinMaxEnd)) {
                         // error, we've already started another function 
                         MessageBox(hWnd, L"Another process is already running, please wait or cancel.", L"ERROR", MB_OK);
                     }
@@ -313,7 +327,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     // wait a minute, then try again.
                     SetTimer(hWnd, IDT_MINMAXTIMER, 60 * 1000, (TIMERPROC)NULL);
                 } else {
-                    if (ifc.startMinMax(hWnd, yearMinMaxLimit, monthMinMaxLimit, dayMinMaxLimit)) {
+                    if (ifc.startMinMax(hWnd, yearMinMaxLimit, monthMinMaxLimit, dayMinMaxLimit, yearMinmaxEnd, monthMinMaxEnd, dayMinMaxEnd)) {
                         ifc.setButtonText(ctrlS::RUNMIN, L"Cancel");
                         minRun = true;
                     }
@@ -488,6 +502,15 @@ INT_PTR CALLBACK MinTime(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
         if (LOWORD(wParam) == IDOK)
         {
             // get the variable value from the ID box and update the time, then, reset and re-run the daily timer.
+            
+            HWND h = GetDlgItem(hDlg, IDC_MINMAXTIME);
+            SYSTEMTIME st{};
+            DateTime_GetSystemtime(h, &st);
+            
+            mmHour = st.wHour;
+            mmMinute = st.wMinute;
+            
+            /*
             TCHAR c[128];
             GetDlgItemText(hDlg, IDC_MINMAXTIME, c, 128);
             std::wstring time = c;
@@ -502,11 +525,11 @@ INT_PTR CALLBACK MinTime(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
             // using hours and minutes, reset the main variables.
             mmHour = std::stoi(time.substr(0, hourplaces));
             mmMinute = std::stoi(time.substr(1 + hourplaces, 2));
-           
+            
             if (time.at(hourplaces + 7) == 'P') {
                 mmHour += 12;
             }
-
+            */
             // end the current timer and reset the new one.
             KillTimer(hWnd, IDT_MINMAXTIMER);
             ifc.runMinMaxDailySync(hWnd, mmHour, mmMinute);
@@ -548,13 +571,21 @@ INT_PTR CALLBACK TimeReset(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam
     case WM_COMMAND:
         if (LOWORD(wParam) == IDOK)
         {
-            // run the actual update here. 
+            HWND d = GetDlgItem(hDlg, IDC_RESETDATE);
+            SYSTEMTIME stday{};
+            DateTime_GetSystemtime(d, &stday);
+
+            HWND t = GetDlgItem(hDlg, IDC_RESETTIME);
+            SYSTEMTIME sttime{};
+            DateTime_GetSystemtime(d, &sttime);
+
             TCHAR c[128];
             GetDlgItemText(hDlg, IDC_TABLE, c, 128);
-            
             auto it = std::find(options.begin(), options.end(), std::wstring(c));
             int index = it - options.begin();
 
+            /*
+            // run the actual update here. 
             GetDlgItemText(hDlg, IDC_RESETDATE, c, 128);
 
             std::wstring date = c;
@@ -565,8 +596,8 @@ INT_PTR CALLBACK TimeReset(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam
 
             std::string sdate(date.begin(), date.end());
             std::string stime(time.begin(), time.end());
-
-            ifc.resetSyncTime(index, sdate, stime);
+            */
+            ifc.resetSyncTime(index, stday.wYear, stday.wMonth, stday.wDay, sttime.wHour, sttime.wMinute, sttime.wSecond);// sdate, stime);
 
             EndDialog(hDlg, LOWORD(wParam));
             return (INT_PTR)TRUE;
@@ -603,15 +634,14 @@ INT_PTR CALLBACK MonthLimit(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
             // update the month limit, for the next sync run. 
             // note that we'll need to remember to set this manually every time - or pop this up maybe? until the 12 months are over (2022)
             // we'll assume a monthly limit from december 1, 2021
-            TCHAR c[128];
-            GetDlgItemText(hDlg, IDC_MONTHLIMIT, c, 128);
-
-            std::wstring fulldate{ c };
-            // get the datetimes required for the new calculation.
-            yearMinMaxLimit = std::stoi(fulldate.substr(0, 4));
-            monthMinMaxLimit = std::stoi(fulldate.substr(5, 2));
-            dayMinMaxLimit = std::stoi(fulldate.substr(8, 2));
-
+            HWND h = GetDlgItem(hDlg, IDC_MONTHLIMIT);
+            SYSTEMTIME st{};
+            DateTime_GetSystemtime(h, &st);
+            
+            yearMinMaxLimit = st.wYear;
+            monthMinMaxLimit = st.wMonth;
+            dayMinMaxLimit = st.wDay;
+   
             EndDialog(hDlg, LOWORD(wParam));
             return (INT_PTR)TRUE;
         }
@@ -620,3 +650,77 @@ INT_PTR CALLBACK MonthLimit(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
     delete st;
     return (INT_PTR)FALSE;
 }
+
+INT_PTR CALLBACK startDate(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    SYSTEMTIME* st = new SYSTEMTIME();
+    st->wYear = yearMinMaxLimit;
+    st->wMonth = monthMinMaxLimit;
+    st->wDay = dayMinMaxLimit;
+
+    UNREFERENCED_PARAMETER(lParam);
+    switch (message)
+    {
+    case WM_INITDIALOG:
+    {
+
+        HWND h = GetDlgItem(hDlg, IDC_MONTHLIMIT);
+        DateTime_SetSystemtime(h, GDT_VALID, st);
+    }
+    return (INT_PTR)TRUE;
+    case WM_COMMAND:
+        switch (LOWORD(wParam)) {
+            case IDOK:
+            {
+                // update the month limit, for the next sync run. 
+                // note that we'll need to remember to set this manually every time - or pop this up maybe? until the 12 months are over (2022)
+                // we'll assume a monthly limit from december 1, 2021
+
+                //HWND ok = GetDlgItem(hDlg, IDC_CHECKMAXDATE);
+            
+                if (doCalculateEndDate) {
+                    HWND h = GetDlgItem(hDlg, IDC_MAXSETDATE);
+                    SYSTEMTIME st{};
+                    DateTime_GetSystemtime(h, &st);
+
+                    yearMinmaxEnd = st.wYear;
+                    monthMinMaxEnd = st.wMonth;
+                    dayMinMaxEnd = st.wDay;
+                }
+                else {
+                    // forcibly reset to -1 in the case of adding then removing. 
+                    yearMinmaxEnd = -1;
+                    monthMinMaxEnd = -1;
+                    dayMinMaxEnd = -1;
+                }
+                EndDialog(hDlg, LOWORD(wParam));
+                return (INT_PTR)TRUE;
+            }
+            break;
+            case IDC_CHECKMAXDATE:
+            {
+                if (HIWORD(wParam) == BN_CLICKED) {
+                    if (SendDlgItemMessage(hDlg, IDC_CHECKMAXDATE, BM_GETCHECK, 0, 0) == BST_CHECKED) {
+                       // MessageBox(hDlg, L"Checked.", L"CheckBox", MB_OK);
+                        doCalculateEndDate = true;
+                    }
+                    else {
+                       // MessageBox(hDlg, L"Not Checked.", L"CheckBox", MB_OK);
+                        doCalculateEndDate = false;
+                    }
+                }
+            }
+            break;
+        }
+        break;
+    }
+    delete st;
+    return (INT_PTR)FALSE;
+}
+
+/*
+int  = 12;                        // end date for minmax sync
+int  = 1;                           // -
+int  = 2021;                       // -
+bool  = false;                // Use this date, or calculate from current date?
+*/

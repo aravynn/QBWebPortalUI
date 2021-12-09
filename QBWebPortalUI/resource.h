@@ -17,6 +17,7 @@
 #define IDD_SQLSETUP                    130
 #define IDD_TIMERESET                   131
 #define IDD_LIMITLOADTIME               132
+#define IDD_MINMAXLASTDATE              133
 #define IDC_MINMAXTIME                  1003
 #define IDC_SQLUSER                     1004
 #define IDC_SQLPASS                     1005
@@ -28,8 +29,9 @@
 #define IDC_PASSENTRY                   1011
 #define IDC_EDIT1                       1013
 #define IDC_SQLDATABASE                 1014
-#define IDC_DATETIMEPICKER1             1014
 #define IDC_MONTHLIMIT                  1015
+#define IDC_MAXSETDATE                  1016
+#define IDC_CHECKMAXDATE                1017
 #define IDT_SYNCTIMER                   2001
 #define IDT_MINMAXTIMER                 2002
 #define IDT_SYNCINTERVALTIMER           2003
@@ -40,6 +42,8 @@
 #define IDM_TIMERESET                   32775
 #define IDM_RUNTIME                     32776
 #define ID_FILE_LIMITLOADTIME           32777
+#define ID_FILE_SETLASTMINMAXLOADDATE   32778
+#define ID_FILE_SETLASTDATE             32779
 #define IDC_STATIC                      -1
 
 // Next default values for new objects
@@ -47,9 +51,9 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        133
-#define _APS_NEXT_COMMAND_VALUE         32778
-#define _APS_NEXT_CONTROL_VALUE         1016
+#define _APS_NEXT_RESOURCE_VALUE        134
+#define _APS_NEXT_COMMAND_VALUE         32780
+#define _APS_NEXT_CONTROL_VALUE         1018
 #define _APS_NEXT_SYMED_VALUE           110
 #endif
 #endif

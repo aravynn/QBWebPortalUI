@@ -26,15 +26,19 @@ QBXMLSync::~QBXMLSync()
 bool QBXMLSync::getSQLStatus()
 {
     // check that sql is there. if not, we failed and need to initialize.
-    if (m_sql != nullptr) {
-        return m_sql->connected;
-    }
-    return false;
+
+    return m_sql->isConnected();
 }
 
 SQLControl *  QBXMLSync::getSqlPtr()
 {
     return m_sql.get();
+}
+
+void QBXMLSync::addLog(std::string& msg)
+{
+    // passthrough for a message (notice only.)
+    m_sql->logError(ErrorLevel::EXTRA, msg);
 }
 
 
@@ -402,6 +406,9 @@ bool QBXMLSync::getInventory()
 
 bool QBXMLSync::fullsync()
 {
+    // check and reaffirm connection.
+    if (!m_sql->isConnected()) return false;
+
     // run a sync of everything, for simpler code later.
     if (!getInventory()) { return false; }
     if (!getSalesOrders()) { return false; }
@@ -1443,17 +1450,34 @@ bool QBXMLSync::updateMinMaxInventory(const std::string& listID, std::string& ed
 // build to allow XML files of MANY products, not just singles. Hopefully faster.
 // ------------------------------------------------------------------------------
 
-bool QBXMLSync::updateMinMaxBatch(int batch, int daysLimit) {
+bool QBXMLSync::updateMinMaxBatch(int batch, int daysLimit, int daysEnd) {
+
+    // check and reaffirm connection.
+    if (!m_sql->isConnected()) {
+        return false;
+    }
+    else {
+        std::string test = "MySQL Connected " + std::to_string(__LINE__) + " file " + std::string(__FILE__);
+        m_sql->logError(ErrorLevel::EXTRA, test);
+    }
+
 
     FilterPass inserts;
     inserts.push_back({ "", std::string("") });
     
     double daysMult = 1.0f;
     // set the interval string for all updates. 
-    std::string interval{ "1 YEAR" };
+    std::string interval{ std::to_string(365 + daysEnd) + " DAY" };
     if (daysLimit < 365) {
         interval = std::to_string(daysLimit) + " DAY";
-        daysMult = 365.0 / (double)daysLimit;
+        daysMult = 365.0f / ((double)daysLimit - daysEnd); // account for the adjustment to the end date.
+    }
+
+    std::string endInterval{ "" }; // start as a blank string, or assume - X DAY to add to the query strings.
+    
+    // set if not 0. Value is defined as NOW() - this date.
+    if (daysEnd > 0) {
+        endInterval = " - INTERVAL " + std::to_string(daysEnd) + " DAY ";
     }
 
     // reset generic values for runningtally as well as IsEdited. Reorder Point and MaxInv must not be edited until final edit time.
@@ -1465,9 +1489,13 @@ bool QBXMLSync::updateMinMaxBatch(int batch, int daysLimit) {
         m_sql->logError(ErrorLevel::WARNING, err);
         return false;
     }
+    else {
+        std::string err = "min/max tally reset success File: " + std::string(__FILE__) + " Line: " + std::to_string(__LINE__) + ' ' + request;
+        m_sql->logError(ErrorLevel::WARNING, err);
+    }
 
     // get the total lines that need consideration.
-    request = "SELECT count(soline.ItemListID) as run FROM lineitem as soline, orders as so WHERE so.OrderType = 'SO' AND so.TxnID = soline.TxnID AND so.TimeCreated < NOW() AND so.TimeCreated > NOW() - INTERVAL " + interval;
+    request = "SELECT count(soline.ItemListID) as run FROM lineitem as soline, orders as so WHERE so.OrderType = 'SO' AND so.TxnID = soline.TxnID AND so.TimeCreated < NOW()" + endInterval + " AND so.TimeCreated > NOW() - INTERVAL " + interval;
 
     m_status->minmax = -99;
     int rtLines = 0;
@@ -1486,6 +1514,11 @@ bool QBXMLSync::updateMinMaxBatch(int batch, int daysLimit) {
         }
         //e = "complex complete: " + std::to_string(rtLines);
         //m_sql->logError((ErrorLevel)2, e);
+
+        {
+            std::string test = "select count " + std::to_string(__LINE__) + " file " + std::string(__FILE__) + " Request: " + request;
+            m_sql->logError(ErrorLevel::EXTRA, test);
+        }
     }
 
     for (int i{ 0 }; i < rtLines; i += rLim) {
@@ -1496,7 +1529,7 @@ bool QBXMLSync::updateMinMaxBatch(int batch, int daysLimit) {
         request = "UPDATE inventory as i JOIN "
             "(SELECT i.ListID as n, SUM(x.quantity) as q, i.ReorderPoint as rp FROM "
             "(SELECT soline.ItemListID as listID, soline.quantity as quantity FROM lineitem as soline, orders as so WHERE "
-            "so.OrderType = 'SO' AND so.TxnID = soline.TxnID AND so.TimeCreated < NOW() AND so.TimeCreated > NOW() - INTERVAL " + interval + " LIMIT " 
+            "so.OrderType = 'SO' AND so.TxnID = soline.TxnID AND so.TimeCreated < NOW()" + endInterval + " AND so.TimeCreated > NOW() - INTERVAL " + interval + " LIMIT "
             + std::to_string((rtLines - i >= rLim ? rLim : rtLines - i)) + " OFFSET " + std::to_string(i) +") as x "
             "JOIN inventory as i ON x.listID = i.ListID "
             "GROUP BY x.listID) as u "
@@ -1510,6 +1543,11 @@ bool QBXMLSync::updateMinMaxBatch(int batch, int daysLimit) {
             m_sql->logError((ErrorLevel)2, err);
             return false;
         }
+        else {
+            std::string test = "updated runningtally  " + std::to_string(__LINE__) + " file " + std::string(__FILE__) + " request: " + request;
+            m_sql->logError(ErrorLevel::EXTRA, test);
+        }
+
     }
     // to preserve usability, this additional call will check the isEdited position and set the reorder point for the next section. 
     
@@ -1524,6 +1562,10 @@ bool QBXMLSync::updateMinMaxBatch(int batch, int daysLimit) {
         m_sql->logError((ErrorLevel)2, err);
         return false;
     }
+    else {
+        std::string test = "updated reorder point  " + std::to_string(__LINE__) + " file " + std::string(__FILE__) + " request: " + request;
+        m_sql->logError(ErrorLevel::EXTRA, test);
+    }
 
     request = "UPDATE inventory SET MaxInv = IF(RunningTally > ReorderPoint, IF(RunningTally > MaxInv, RunningTally, MaxInv), IF(MaxInv > ReorderPoint * 4, MaxInv, ReorderPoint * 4)) WHERE MaxInv > -1";
     
@@ -1533,6 +1575,10 @@ bool QBXMLSync::updateMinMaxBatch(int batch, int daysLimit) {
         std::string err = "min/max max inv Failed File: " + std::string(__FILE__) + " Line: " + std::to_string(__LINE__);
         m_sql->logError((ErrorLevel)2, err);
         return false;
+    }
+    else {
+        std::string test = "updated max inv  " + std::to_string(__LINE__) + " file " + std::string(__FILE__) + " request: " + request;
+        m_sql->logError(ErrorLevel::EXTRA, test);
     }
 
     // update all reorder points that have assemblies associated with them, and add those numbers to the reorder point.
@@ -1551,6 +1597,10 @@ bool QBXMLSync::updateMinMaxBatch(int batch, int daysLimit) {
         m_sql->logError((ErrorLevel)2, err);
         return false;
     }
+    else {
+        std::string test = "updated reorder point  " + std::to_string(__LINE__) + " file " + std::string(__FILE__) + " request: " + request;
+        m_sql->logError(ErrorLevel::EXTRA, test);
+    }
 
     request = "UPDATE inventory SET MaxInv = ReorderPoint * 4 WHERE MaxInv > -1 AND MaxInv < ReorderPoint";
 
@@ -1561,11 +1611,15 @@ bool QBXMLSync::updateMinMaxBatch(int batch, int daysLimit) {
         m_sql->logError((ErrorLevel)2, err);
         return false;
     }
+    else {
+        std::string test = "updated maxinv 2  " + std::to_string(__LINE__) + " file " + std::string(__FILE__) + " request: " + request;
+        m_sql->logError(ErrorLevel::EXTRA, test);
+    }
 
     // Start with updating all MAX products. We'll need to get then set all the values in a dedicated loop. 
 //    request = "SELECT I.ListID, I.Name, I.ReorderPoint, I.MaxInv, I.EditSequence FROM INVENTORY as I, minimumdivider as D WHERE SUBSTRING(I.Name, 1, 2) = D.Prefix AND I.ProductType = 'ItemInventoryRet' AND MaxInv > 0";
     //request = "SELECT I.ListID, I.Name, I.ReorderPoint, I.MaxInv, I.EditSequence FROM INVENTORY as I WHERE I.ProductType = 'ItemInventoryRet' AND MaxInv > -1";
-    request = "SELECT I.ListID, I.Name, I.ReorderPoint, I.MaxInv, I.EditSequence FROM INVENTORY as I, minimumdivider as D WHERE SUBSTRING(I.Name, 1, 2) = D.Prefix AND I.ProductType = 'ItemInventoryRet' AND I.IsEdited = 1 AND I.MaxInv > -1";
+    request = "SELECT I.ListID, I.Name, I.ReorderPoint, I.MaxInv, I.EditSequence FROM inventory as I, minimumdivider as D WHERE SUBSTRING(I.Name, 1, 2) = D.Prefix AND I.ProductType = 'ItemInventoryRet' AND I.IsEdited = 1 AND I.MaxInv > -1";
     
     m_status->minmax = -95;
 
@@ -1584,6 +1638,11 @@ bool QBXMLSync::updateMinMaxBatch(int batch, int daysLimit) {
         editSequences.reserve(batch);
         ReorderPoints.reserve(batch);
         // max will be manually set.
+
+        {
+         std::string test = "updated retreive maxinv  " + std::to_string(__LINE__) + " file " + std::string(__FILE__) + " request: " + request;
+         m_sql->logError(ErrorLevel::EXTRA, test);
+        }
 
         // while loop for data assignment
         //int loop = 0;
@@ -1633,7 +1692,7 @@ bool QBXMLSync::updateMinMaxBatch(int batch, int daysLimit) {
 
     // get all of the products that have been changed, and process them through XML. If there is a Max, we'll need to also update that to <Max ></Max>
     
-    request = "SELECT I.ListID, I.Name, I.ReorderPoint, I.MaxInv, I.EditSequence FROM INVENTORY as I, minimumdivider as D WHERE SUBSTRING(I.Name, 1, 2) = D.Prefix AND I.ProductType = 'ItemInventoryRet' AND I.IsEdited = 1";
+    request = "SELECT I.ListID, I.Name, I.ReorderPoint, I.MaxInv, I.EditSequence FROM inventory as I, minimumdivider as D WHERE SUBSTRING(I.Name, 1, 2) = D.Prefix AND I.ProductType = 'ItemInventoryRet' AND I.IsEdited = 1";
 
     m_status->minmax = -94;
 
@@ -1652,6 +1711,11 @@ bool QBXMLSync::updateMinMaxBatch(int batch, int daysLimit) {
         editSequences.reserve(batch);
         ReorderPoints.reserve(batch);
         // max will be manually set.
+
+        {
+         std::string test = "updated minimums retreives  " + std::to_string(__LINE__) + " file " + std::string(__FILE__) + " request: " + request;
+         m_sql->logError(ErrorLevel::EXTRA, test);
+        }
 
         // while loop for data assignment
         //int loop = 0;
@@ -1698,6 +1762,11 @@ bool QBXMLSync::updateMinMaxBatch(int batch, int daysLimit) {
             }
         }
     }
+
+     {
+     std::string test = "minmax completed.  " + std::to_string(__LINE__) + " file " + std::string(__FILE__);
+     m_sql->logError(ErrorLevel::EXTRA, test);
+     }
 
     *m_isActive = false;
     return true;
@@ -1755,6 +1824,11 @@ bool QBXMLSync::updateMinMaxInventory(const std::vector<std::string>& listID, st
     request.append("\n\t</QBXMLMsgsRq>\n"
         "</QBXML>");
 
+    {
+        std::string test = "minmax req: " + std::to_string(__LINE__) + " file " + std::string(__FILE__) + " REQUEST: " + request;
+        m_sql->logError(ErrorLevel::EXTRA, test);
+    }
+
     // send the completed request, and get the response data. 
     m_req.processRequest(request);
     
@@ -1771,6 +1845,10 @@ bool QBXMLSync::updateMinMaxInventory(const std::vector<std::string>& listID, st
         m_sql->logError(e.error, e.data);
     }
 
+    {
+        std::string test = "minmax resp: " + std::to_string(__LINE__) + " file " + std::string(__FILE__) + " response: " + returnData;
+        m_sql->logError(ErrorLevel::EXTRA, test);
+    }
 
     XMLNode respParentNode; // each child is the ones we need to check
     nodeRet.getNodeFromPath(std::list<int>{0, 0}, respParentNode);

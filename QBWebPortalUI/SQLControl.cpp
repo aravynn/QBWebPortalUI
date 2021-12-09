@@ -190,6 +190,8 @@ SQLControl::~SQLControl()
 
 bool SQLControl::SQLSelect(std::vector<std::string> columns, std::string table, FilterPass filter, int limit, int offset, bool desc) 
 {
+    if (!isConnected()) return false;
+
     try {
 
         // NEW CODE HERE. 
@@ -266,6 +268,8 @@ bool SQLControl::SQLSelect(std::vector<std::string> columns, std::string table, 
 
 bool SQLControl::SQLSearch(std::vector<std::string> getColumns, std::vector<std::string> searchColumns, std::string table, std::string searchTerm, FilterPass filter, int limit, int offset, bool desc)
 {
+    if (!isConnected()) return false;
+
     // perform a SEARCH action on the Database. use the vector to get the part and assemble the request.
     try {
         std::string REQUEST = "SELECT ";
@@ -379,6 +383,8 @@ bool SQLControl::SQLSearch(std::vector<std::string> getColumns, std::vector<std:
 
 bool SQLControl::SQLUpdate(std::string table, FilterPass updates, FilterPass filter)
 {
+    if (!isConnected()) return false;
+
     try {
 
         std::string REQUEST = "UPDATE " + table + " SET";
@@ -434,6 +440,8 @@ bool SQLControl::SQLUpdate(std::string table, FilterPass updates, FilterPass fil
 
 bool SQLControl::SQLInsert(std::string table, FilterPass inserts)
 {
+    if (!isConnected()) return false;
+
     try {
         std::string REQUEST = "INSERT INTO " + table + " (";
         std::string VALUES = ") VALUES (";
@@ -488,6 +496,8 @@ bool SQLControl::SQLInsert(std::string table, FilterPass inserts)
 
 bool SQLControl::SQLMassInsert(std::string table, std::vector<FilterPass> inserts)
 {
+    if (!isConnected()) return false;
+
     try {
         std::string REQUEST = "INSERT INTO " + table + " ("; // save for table structure
         std::string VALUES = "("; // save for value structure
@@ -588,6 +598,8 @@ bool SQLControl::SQLMassInsert(std::string table, std::vector<FilterPass> insert
 
 bool SQLControl::SQLDelete(std::string table, FilterPass filter)
 {
+    if (!isConnected()) return false;
+
     try {
         std::string REQUEST = "DELETE FROM " + table + " WHERE";
 
@@ -628,6 +640,8 @@ bool SQLControl::SQLDelete(std::string table, FilterPass filter)
 
 bool SQLControl::SQLUpdateOrInsert(std::string table, FilterPass updates, FilterPass filter)
 {
+    if (!isConnected()) return false;
+
     std::vector<std::string> columns;
     
     for (auto u : filter) {
@@ -652,6 +666,8 @@ bool SQLControl::SQLUpdateOrInsert(std::string table, FilterPass updates, Filter
 
 bool SQLControl::SQLComplex(std::string& request, FilterPass inserts, bool expectData)
 {
+    if (!isConnected()) return false;
+
     try {
 
         m_stmt.reset(m_con->prepareStatement(request));
@@ -705,6 +721,8 @@ std::string SQLControl::getConfigTime(std::string name)
 
 bool SQLControl::updateConfigTime(std::string name)
 {
+    if (!isConnected()) return false;
+
     try {
         FilterPass filter = { { "ConfigKey", name } };
 
@@ -802,6 +820,18 @@ bool SQLControl::generateConnectionFile(std::string username, std::string passwo
 
 
 
+}
+
+// Check if a connection is still active, and return TRUE if it is, or FALSE if it has failed.
+bool SQLControl::isConnected()
+{
+    // sleep 1 second to limit fast calling issue.
+    //std::this_thread::sleep_for(std::chrono::seconds(5));
+
+    if (connected) {
+        return (m_con != nullptr && (m_con->isValid() || m_con->reconnect()));
+    }
+    return false;
 }
 
 void SQLControl::logError(ErrorLevel level, std::string& message)
@@ -910,67 +940,3 @@ void SQLControl::connect()
         handleException(e, __LINE__, __FUNCTION__);
     }
 }
-
-/*
-
-// take the table, and return what would be the next ID on the table. To be used BEFORE inserts
-   
-
-    QSqlQuery query;
-    query.prepare(REQUEST);
-
-    if(!query.exec()){
-     //   qWarning() << "ERROR @ getPK: " << query.lastError().text(); // ensure no errors occur during request.
-     //   qWarning() << query.executedQuery();
-    }
-
-    return getQueryLength(query);
-
-*/
-
-
-/* // backup of working code. in case I fuck it up.
-
-SQLControl::SQLControl()
-{
-    // PDO example goes here.
-    try {
-        sql::Driver* driver = get_driver_instance();
-        std::unique_ptr<sql::Connection> con(driver->connect("tcp://127.0.0.1:3306", m_user, m_pass));
-        con->setSchema( m_database );
-        std::unique_ptr<sql::PreparedStatement> stmt;
-        std::unique_ptr<sql::ResultSet> res;
-
-        /* INSERT a line, as a test.  /
-stmt.reset(con->prepareStatement("INSERT INTO sample (DATA) values (?)"));
-stmt->setString(1, "SQL Added");
-stmt->execute();
-
-/* SELECT line, and return it. * /
-stmt.reset(con->prepareStatement("SELECT Data FROM sample WHERE ID > ?"));
-//stmt->setString(1, "2");
-stmt->setInt(1, 2);
-res.reset(stmt->executeQuery());
-
-while (res->next()) {
-    std::cout << "\t... MySQL replies: ";
-    /* Access column data by alias or column name * /
-    std::cout << res->getString("Data") << std::endl;
-    std::cout << "\t... MySQL says it again: ";
-    /* Access column data by numeric offset, 1 is the first column * /
-    std::cout << res->getString(1) << std::endl;
-}
-
-    }
-    catch (sql::SQLException& e) {
-        std::cout << "# ERR: SQLException in " << __FILE__;
-        std::cout << "(" << __FUNCTION__ << ") on line " << __LINE__ << std::endl;
-        std::cout << "# ERR: " << e.what();
-        std::cout << " (MySQL error code: " << e.getErrorCode();
-        std::cout << ", SQLState: " << e.getSQLState() << " )" << std::endl;
-    }
-
-    std::cout << std::endl;
-}
-
-*/

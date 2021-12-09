@@ -1,6 +1,6 @@
 #include "QBUI.h"
 
-//std::mutex m;
+std::mutex m;
 
 QBUI::QBUI()
 {
@@ -53,12 +53,12 @@ bool QBUI::startMainSyncFunction(HWND& hWnd)
 		// other pointers are already linked to sync. 
 		
 		// mutex guard for sync. check later if needed.
-		//m.lock();
+		m.lock();
 
 		// this just starts the process of the function, but allows it to run on a second thread.
 		sync->fullsync();
 
-		//m.unlock();
+		m.unlock();
 
 	};
 
@@ -79,11 +79,19 @@ bool QBUI::startMainSyncFunction(HWND& hWnd)
 
 
 
-bool QBUI::startMinMax(HWND& hWnd, int year, int month, int day)
+bool QBUI::startMinMax(HWND& hWnd, int year, int month, int day, int endYear, int endMonth, int endDay)
 {
 	// we're running, so exit this function.
 	if (*m_boolStatus == true) {
 		return false;
+	}
+
+	bool endDate = (endYear > -1 && endMonth > -1 && endDay > -1);
+
+	if(endDate){
+		std::string msg{ "Run Min/Max from " + std::to_string(day) + '/' + std::to_string(month) + '/' + std::to_string(year) + 
+			" to " + std::to_string(endDay) + '/' + std::to_string(endMonth) + '/' + std::to_string(endYear)};
+		m_sync->addLog(msg);
 	}
 
 	// check the timing, get the total days between NOW and offered date.
@@ -104,12 +112,34 @@ bool QBUI::startMinMax(HWND& hWnd, int year, int month, int day)
 		return false; // this is an invalid claim
 	}
 
+	if(thisYear <= endYear - 1) {
+		std::wstring err = L"Entered date is in the future" + std::to_wstring(endYear) + L' ' + std::to_wstring(year);
+		MessageBox(hWnd, err.c_str(), L"Error", IDOK);
+		return false; // this is an invalid claim
+	}
+
+	if ((endYear < year ||
+		(endYear == year && endMonth < month) ||
+		(endYear == year && endMonth == month && endDay < day)) &&
+		endDate) {
+		std::wstring err = L"The entered start date is after the entered end date.";
+		MessageBox(hWnd, err.c_str(), L"Error", IDOK);
+		return false; // this is an invalid claim
+	}
+
 	int monthCount{ 0 };
 	for (int i{ 0 }; i < month - 1; ++i) {
 		monthCount += monthDays.at(i);
 	}
 
+	int endMonthCount{ 0 };
+	for (int i{ 0 }; i < endMonth - 1; ++i) {
+		endMonthCount += monthDays.at(i);
+	}
+
 	int daysFrom = ((thisYear - year) * 365 + thisDay) - (monthCount + day);
+
+	int daysFromTo = (endDate ? ((thisYear - endYear) * 365 + thisDay) - (endMonth + endDay) : 0);
 
 	if (daysFrom < 90) {
 		MessageBox(hWnd, L"At least 90 days of backdata is required.", L"Error", IDOK);
@@ -122,16 +152,16 @@ bool QBUI::startMinMax(HWND& hWnd, int year, int month, int day)
 	return false;
 	*/
 
-	auto run = [](std::shared_ptr<QBXMLSync> sync, int days) {
+	auto run = [](std::shared_ptr<QBXMLSync> sync, int days, int dayTo) {
 		// other pointers are already linked to sync. 
 
 		// mutex guard for sync. check later if needed.
-		//m.lock();
+		m.lock();
 
 		// this just starts the process of the function, but allows it to run on a second thread.
-		sync->updateMinMaxBatch(50, days);
+		sync->updateMinMaxBatch(50, days, dayTo);
 
-		//m.unlock();
+		m.unlock();
 
 	};
 
@@ -140,7 +170,7 @@ bool QBUI::startMinMax(HWND& hWnd, int year, int month, int day)
 	SetTimer(hWnd, IDT_SYNCTIMER, 1000, (TIMERPROC)NULL);
 
 	// initialize the thread.
-	std::thread mythread(run, m_sync, daysFrom);
+	std::thread mythread(run, m_sync, daysFrom,  daysFromTo);
 
 	// after doing so, let it run apart from this thread.
 	mythread.detach();
@@ -279,11 +309,13 @@ void QBUI::setStatic(HWND stat, HWND& hWnd, std::wstring string)
 	RedrawWindow(hWnd, &rect, NULL, RDW_ERASE | RDW_INVALIDATE);
 }
 
-void QBUI::resetSyncTime(int tableIndex, std::string date, std::string time)
+void QBUI::resetSyncTime(int tableIndex, int year, int month, int day, int hour, int minute, int second) // std::string date, std::string time)
 {
-	// cast the table value to the enum
+	
 	SQLTable tableval = (SQLTable)tableIndex;
-
+	/*
+	// cast the table value to the enum
+	
 	// concatenate the timeframe for insert. 
 	std::string newTime = date + ' ' + time;
 
@@ -308,7 +340,7 @@ void QBUI::resetSyncTime(int tableIndex, std::string date, std::string time)
 	if (time.at(hourplaces + 7) == 'P') {
 		hour += 12;
 	}
-
+	*/
 	m_sync->timeReset(tableval, year, month, day, hour, minute, second);
 
 }

@@ -63,7 +63,8 @@ public:
 	~QBXMLSync();
 	std::shared_ptr<TransferStatus> getStatus() { return m_status; }
 	bool getSQLStatus(); // check the current SQL status and return TRUE if ok or FALSE if SQL is not set.
-	SQLControl * getSqlPtr();	// probably inappropriate solution, buuut it works! 
+	SQLControl * getSqlPtr();	// probably inappropriate solution, buuut it works!
+	void addLog(std::string& msg);	// create a message to pass back for logging in DB.
 
 	bool getInventory();	
 	bool getSalesOrders();
@@ -78,7 +79,7 @@ public:
 //	bool getShippingTypes();	// not sure if required. 
 
 	bool updateMinMax(); // update the minmax for all items. 
-	bool updateMinMaxBatch(int batch = 100, int daysLimit = 365); // update the minmax for all items, in pre-grouped sets. This may not be at all valid. 
+	bool updateMinMaxBatch(int batch = 100, int daysLimit = 365, int daysEnd = 0); // update the minmax for all items, in pre-grouped sets. This may not be at all valid. 
 	bool updateMinMaxInventory(const std::string& listID, std::string& editSequence, int reorderPoint = -1, bool max = false);
 	bool updateMinMaxInventory(const std::vector<std::string>& listID, std::vector<std::string>& editSequence, std::vector<int> newValue, bool max = false); // max is assumed for ALL items.
 	bool updateInventoryPartnumbers(int limit = 100, std::string type = "ItemInventoryMod"); // limited update function for all parts. Just a one-off.

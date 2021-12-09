@@ -88,7 +88,7 @@ public:
 
 	QXStatus initializeSyncApp(HWND& hWnd, std::string password);	// create the required variables. 
 	bool startMainSyncFunction(HWND& hWnd);							// start the main sync function 
-	bool startMinMax(HWND& hWnd, int year = 2021, int month = 12, int day = 1);		// start the minMax sync functionality. 
+	bool startMinMax(HWND& hWnd, int year = 2021, int month = 12, int day = 1, int endYear = -1, int endMonth = -1, int endDay = -1);		// start the minMax sync functionality. 
 	void cancelCurrentAction();										// cancel the current function using boolStatus 
 	void generateConnectionFile(std::string username, std::string password, std::string ip, std::string database, std::string encryptionPassword);
 
@@ -100,7 +100,7 @@ public:
 
 	void setStatic(HWND stat, HWND& hWnd, std::wstring string);
 
-	void resetSyncTime(int tableIndex, std::string date, std::string time);
+	void resetSyncTime(int tableIndex, int year, int month, int day, int hour, int minute, int second);// std::string date, std::string time);
 	void displayNextSyncTime(HWND& hWnd, int minute);							// display the next sync time
 
 	void makeUI(HWND hWnd);	// generate UI controls, requires the external HWND object.

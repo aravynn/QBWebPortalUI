@@ -30,6 +30,8 @@
 
 #include <functional> // std::hash for rand seed
 #include <fstream>  // filestream services, reading and writing files.
+#include <thread>
+#include <chrono>
 /*
   Include directly the different
   headers from cppconn/ and mysql_driver.h + mysql_util.h
@@ -117,6 +119,7 @@ public:
     bool generateConnectionFile(std::string username, std::string password, std::string ip, std::string database, std::string encryptionPassword);
     
     bool connected = false; // quick check if a valid connection exists.
+    bool isConnected();
 
     void logError(ErrorLevel level, std::string& message);
 

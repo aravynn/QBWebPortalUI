@@ -15,5 +15,9 @@
 #include <tchar.h>
 #include <CommCtrl.h>
 
+// sleep functionality
+#include <thread>
+#include <chrono>
+
 #include "QBUI.h"
 //#include "Bitmap_Operations.h"
