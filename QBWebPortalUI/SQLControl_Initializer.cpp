@@ -34,7 +34,11 @@ void SQLControl::initializeDatabase()
     inserts.resize(1);
     // forces a generic user. 
     inserts.at(0) = { std::string("User"), std::string("QBXML") };
-    SQLInsert(table, inserts);
+    if (!SQLInsert(table, inserts, false)) {
+        std::string error{ "Failed to create user on table users. line:" + std::to_string(__LINE__) + " Fn: " + __FUNCTION__ };
+        ThrownError e(ErrorLevel::ERR, error);
+        throw e;
+    }
 
     // Inventory
     REQUEST =
@@ -112,7 +116,7 @@ void SQLControl::initializeDatabase()
 
     for (std::string p : prefixes) {
         inserts.at(0).second.str = p;
-        SQLInsert(table, inserts);
+        SQLInsert(table, inserts, false);
     }
 
     // Salesorders, estimates, invoices.
@@ -368,21 +372,21 @@ void SQLControl::initializeDatabase()
     }
 
     table = "sync_config";
+    
+    std::vector<std::string> configTables = { "inventory", "customers", "purchaseorders", "salesorders", "invoices", "estimates" };
+    
     inserts.clear();
     inserts.resize(0);
-    inserts.push_back({ "ConfigKey", std::string("inventory") });
-    SQLInsert(table, inserts);
-    inserts.at(0).second = std::string("customers");
-    SQLInsert(table, inserts);
-    inserts.at(0).second = std::string("purchaseorders");
-    SQLInsert(table, inserts);
-    inserts.at(0).second = std::string("salesorders");
-    SQLInsert(table, inserts);
-    inserts.at(0).second = std::string("invoices");
-    SQLInsert(table, inserts);
-    inserts.at(0).second = std::string("estimates");
-    SQLInsert(table, inserts);
+    inserts.push_back({ "ConfigKey", std::string("") });
 
+    for (std::string cfg : configTables) {
+        inserts.at(0).second = std::string(cfg);
+        if (!SQLInsert(table, inserts, false)) {
+            std::string error{ "Failed to insert config for " + cfg + " line: " + std::to_string(__LINE__) + " Fn: " + __FUNCTION__};
+            ThrownError e(ErrorLevel::ERR, error);
+            throw e;
+        }
+    }
 
     // SyncQueue
     REQUEST =

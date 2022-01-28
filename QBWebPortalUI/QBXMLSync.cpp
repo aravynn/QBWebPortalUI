@@ -1475,6 +1475,7 @@ bool QBXMLSync::updateMinMaxBatch(int batch, int daysLimit, int daysEnd) {
 
     std::string endInterval{ "" }; // start as a blank string, or assume - X DAY to add to the query strings.
     
+
     // set if not 0. Value is defined as NOW() - this date.
     if (daysEnd > 0) {
         endInterval = " - INTERVAL " + std::to_string(daysEnd) + " DAY ";
@@ -1617,8 +1618,8 @@ bool QBXMLSync::updateMinMaxBatch(int batch, int daysLimit, int daysEnd) {
     }
 
     // Start with updating all MAX products. We'll need to get then set all the values in a dedicated loop. 
-//    request = "SELECT I.ListID, I.Name, I.ReorderPoint, I.MaxInv, I.EditSequence FROM INVENTORY as I, minimumdivider as D WHERE SUBSTRING(I.Name, 1, 2) = D.Prefix AND I.ProductType = 'ItemInventoryRet' AND MaxInv > 0";
-    //request = "SELECT I.ListID, I.Name, I.ReorderPoint, I.MaxInv, I.EditSequence FROM INVENTORY as I WHERE I.ProductType = 'ItemInventoryRet' AND MaxInv > -1";
+    // request = "SELECT I.ListID, I.Name, I.ReorderPoint, I.MaxInv, I.EditSequence FROM INVENTORY as I, minimumdivider as D WHERE SUBSTRING(I.Name, 1, 2) = D.Prefix AND I.ProductType = 'ItemInventoryRet' AND MaxInv > 0";
+    // request = "SELECT I.ListID, I.Name, I.ReorderPoint, I.MaxInv, I.EditSequence FROM INVENTORY as I WHERE I.ProductType = 'ItemInventoryRet' AND MaxInv > -1";
     request = "SELECT I.ListID, I.Name, I.ReorderPoint, I.MaxInv, I.EditSequence FROM inventory as I, minimumdivider as D WHERE SUBSTRING(I.Name, 1, 2) = D.Prefix AND I.ProductType = 'ItemInventoryRet' AND I.IsEdited = 1 AND I.MaxInv > -1";
     
     m_status->minmax = -95;

@@ -100,7 +100,7 @@ public:
     bool SQLSearch(std::vector<std::string> getColumns, std::vector<std::string> searchColumns, std::string table, std::string searchTerm, FilterPass filter, int limit = -1, int offset = -1, bool desc = false);
 
     bool SQLUpdate(std::string table, FilterPass updates, FilterPass filter);
-    bool SQLInsert(std::string table, FilterPass inserts);              // for a single insert
+    bool SQLInsert(std::string table, FilterPass inserts, bool testCon = true);              // for a single insert
     bool SQLMassInsert(std::string table, std::vector<FilterPass> inserts);     // for many lines insert
     bool SQLDelete(std::string table, FilterPass filter);
     bool SQLUpdateOrInsert(std::string table, FilterPass updates, FilterPass filter);

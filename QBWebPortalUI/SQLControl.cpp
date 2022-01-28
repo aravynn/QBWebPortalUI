@@ -438,9 +438,9 @@ bool SQLControl::SQLUpdate(std::string table, FilterPass updates, FilterPass fil
 // Insert a new row
 // ----------------
 
-bool SQLControl::SQLInsert(std::string table, FilterPass inserts)
+bool SQLControl::SQLInsert(std::string table, FilterPass inserts, bool testCon)
 {
-    if (!isConnected()) return false;
+    if (testCon && !isConnected()) return false;
 
     try {
         std::string REQUEST = "INSERT INTO " + table + " (";
