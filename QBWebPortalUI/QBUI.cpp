@@ -8,7 +8,7 @@ QBUI::QBUI()
 
 void QBUI::setButtonColor(HWND hWnd)
 {
-	
+	// function was meant to alter button color. This is not completed or implemented.
 	SendMessage(hWnd, WM_CTLCOLORBTN, (WPARAM)GetDC(m_controls.at((int)ctrlS::START)), (LPARAM)m_controls.at((int)ctrlS::START));
 	InvalidateRect(m_controls.at((int)ctrlS::START), NULL, TRUE);
 	UpdateWindow(hWnd);
@@ -16,6 +16,7 @@ void QBUI::setButtonColor(HWND hWnd)
 
 QXStatus QBUI::initializeSyncApp(HWND& hWnd, std::string password)
 {
+	// starts the syncing process, assumes that the system is not running an alternate function. 
 	m_transferStatus = std::make_shared<TransferStatus>();
 	m_boolStatus = std::make_shared<bool>(false); // must be false for nothing running.
 	try {
@@ -81,6 +82,8 @@ bool QBUI::startMainSyncFunction(HWND& hWnd)
 
 bool QBUI::startMinMax(HWND& hWnd, int year, int month, int day, int endYear, int endMonth, int endDay)
 {
+	//  start min/max process. This updates the values on the server based on information in the mysql database.
+
 	// we're running, so exit this function.
 	if (*m_boolStatus == true) {
 		return false;
@@ -186,6 +189,8 @@ void QBUI::cancelCurrentAction()
 
 void QBUI::generateConnectionFile(std::string username, std::string password, std::string ip, std::string database, std::string encryptionPassword)
 {
+	// creates a connection file when closing/clicking ok on the connection window.
+
 	// get a passthrough pointer for the SQL object.
 	SQLControl * sql = m_sync->getSqlPtr();
 
@@ -195,11 +200,15 @@ void QBUI::generateConnectionFile(std::string username, std::string password, st
 
 bool QBUI::setButtonText(ctrlS btn, std::wstring text)
 {
+	// alter button text on click or other actions.
+
 	return SendMessage(m_controls.at((int)btn), WM_SETTEXT, 0, (LPARAM) text.c_str());
 }
 
 bool QBUI::getSyncBoolStatus()
 {
+	// returns the status of secondary strings.
+
 	return *m_boolStatus;
 }
 
@@ -301,6 +310,8 @@ void QBUI::runMinMaxDailySync(HWND& hWnd, int hour, int minute)
 
 void QBUI::setStatic(HWND stat, HWND& hWnd, std::wstring string)
 {
+	// change static text on updates.
+
 	RECT rect;
 	GetClientRect(stat, &rect);
 	InvalidateRect(stat, &rect, TRUE);
@@ -311,7 +322,8 @@ void QBUI::setStatic(HWND stat, HWND& hWnd, std::wstring string)
 
 void QBUI::resetSyncTime(int tableIndex, int year, int month, int day, int hour, int minute, int second) // std::string date, std::string time)
 {
-	
+	// reset the time on sync values for next run.
+
 	SQLTable tableval = (SQLTable)tableIndex;
 	/*
 	// cast the table value to the enum
@@ -347,6 +359,8 @@ void QBUI::resetSyncTime(int tableIndex, int year, int month, int day, int hour,
 
 void QBUI::displayNextSyncTime(HWND& hWnd, int minute)
 {
+	// using known sync time update the window to display
+
 	// determine the current time, hours and minutes.
 	time_t now = time(NULL);
 	
@@ -371,6 +385,8 @@ void QBUI::displayNextSyncTime(HWND& hWnd, int minute)
 
 void QBUI::makeUI(HWND hWnd)
 {
+	// create the primary user interface for the main window.
+
 	if (m_controls.size() > 0) {
 		// controls already exist, delete all controls.
 		for (int i{ 0 }; i < (int)m_controls.size(); ++i) {

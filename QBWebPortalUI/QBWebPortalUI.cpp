@@ -44,7 +44,7 @@ INT_PTR CALLBACK MonthLimit(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
 INT_PTR CALLBACK startDate(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 
 
-
+// main entry point to application, loads UI
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
                      _In_ LPWSTR    lpCmdLine,
@@ -386,6 +386,7 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     return (INT_PTR)FALSE;
 }
 
+// message handler for connection
 INT_PTR CALLBACK Connection(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     UNREFERENCED_PARAMETER(lParam);
@@ -444,6 +445,7 @@ INT_PTR CALLBACK Connection(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
     return (INT_PTR)FALSE;
 }
 
+// message hander for password popup
 INT_PTR CALLBACK Password(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     UNREFERENCED_PARAMETER(lParam);
@@ -490,6 +492,7 @@ INT_PTR CALLBACK Password(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     return (INT_PTR)FALSE;
 }
 
+// message handler for mini time popup
 INT_PTR CALLBACK MinTime(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     UNREFERENCED_PARAMETER(lParam);
@@ -543,6 +546,7 @@ INT_PTR CALLBACK MinTime(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     return (INT_PTR)FALSE;
 }
 
+// message handler for time reset popup
 INT_PTR CALLBACK TimeReset(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     std::vector<std::wstring> options;
@@ -611,6 +615,8 @@ INT_PTR CALLBACK TimeReset(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam
     return (INT_PTR)FALSE;
 }
 
+// message handler for time load limit
+
 INT_PTR CALLBACK MonthLimit(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     SYSTEMTIME* st = new SYSTEMTIME();
@@ -650,6 +656,8 @@ INT_PTR CALLBACK MonthLimit(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPara
     delete st;
     return (INT_PTR)FALSE;
 }
+
+// message handler for setting start date
 
 INT_PTR CALLBACK startDate(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {

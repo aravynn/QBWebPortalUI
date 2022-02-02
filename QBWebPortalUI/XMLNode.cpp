@@ -214,6 +214,9 @@ XMLNode& XMLNode::child(unsigned int node)
     return m_children.at(node);
 }
 
+
+// function to find a child in list from this element.
+// 0--------------------------------------------------
 XMLNode XMLNode::findChild(std::string name)
 {
     for (unsigned int i{ 0 }; i < m_children.size(); ++i) {
@@ -225,6 +228,8 @@ XMLNode XMLNode::findChild(std::string name)
     return blank;
 }
 
+// get value of child at X
+// -----------------------
 std::string XMLNode::getChildValue(std::string name, std::string s)
 {
     for (unsigned int i{ 0 }; i < m_children.size(); ++i) {
@@ -255,6 +260,8 @@ double XMLNode::getChildValue(std::string name, double d)
     return d;
 }
 
+// call data based on a numeric type without concern if parsed as one or the other. 
+// --------------------------------------------------------------------------------
 double XMLNode::getDoubleOrInt(std::string name)
 {
 
@@ -367,6 +374,8 @@ bool XMLNode::getStatus()
     return m_isActive;
 }
 
+// output this node structure to console
+// -------------------------------------
 void XMLNode::write(int indent)
 {
 
@@ -404,6 +413,7 @@ void XMLNode::write(int indent)
     }
 }
 
+// write value to an XML string for later use.
 void XMLNode::writeXML(std::string& retval, int indent)
 {
     std::stringstream ss; // for final add to retval.

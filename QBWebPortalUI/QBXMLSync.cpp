@@ -8,6 +8,8 @@ void QBXMLSync::updateInventoryMinMax(std::string ListID, int min)
 QBXMLSync::QBXMLSync(std::string QBID, std::string appName, std::string password, std::shared_ptr<TransferStatus> status, std::shared_ptr<bool> active) 
     : m_sql{ new SQLControl(std::string(password)) }, m_req{ QBRequest(QBID, appName) }, m_isActive{ active }
 {
+    // load the sync status or create a new one for view.
+
     // if an external status object is given, assign it, otherwise, assume internal only.
     if (status != nullptr) {
         m_status = status;
@@ -32,11 +34,15 @@ bool QBXMLSync::getSQLStatus()
 
 SQLControl *  QBXMLSync::getSqlPtr()
 {
+    // get and return the pointer for the SQL object.
+
     return m_sql.get();
 }
 
 void QBXMLSync::addLog(std::string& msg)
 {
+    // create a log message for errors etc.
+
     // passthrough for a message (notice only.)
     m_sql->logError(ErrorLevel::EXTRA, msg);
 }
@@ -44,6 +50,8 @@ void QBXMLSync::addLog(std::string& msg)
 
 
 bool QBXMLSync::getIteratorData(XMLNode& nodeRet, std::list<int> path, std::string& iteratorID, int& statusCode, int& remainingCount) {
+    // get iterator information for automated data transfers
+
     XMLNode BaseNode;
     
     if (nodeRet.getNodeFromPath(path, BaseNode)) {
@@ -72,7 +80,8 @@ bool QBXMLSync::getIteratorData(XMLNode& nodeRet, std::list<int> path, std::stri
 
 //bool iterate(std::string& returnData, std::string table, int maximum = 100, bool useOwner = false, std::string iteratorID = "INIT");
 int QBXMLSync::iterate(std::string& returnData, std::string& iteratorID, std::string table, int maximum, std::string date, bool useOwner, bool modDateFilter, bool orderLinks) {
-    
+    // runs an iteration of a function, following this one. 
+
     // steps: 
     // start the iterator with the initial call.
     // create the XML
@@ -165,6 +174,8 @@ int QBXMLSync::iterate(std::string& returnData, std::string& iteratorID, std::st
 
 bool QBXMLSync::queryAll(std::string& returnData, std::string table)
 {
+    // generate and run a query on QB
+
     // steps: 
     // start the iterator with the initial call.
     // create the XML
@@ -213,6 +224,8 @@ bool QBXMLSync::queryAll(std::string& returnData, std::string table)
 
 int QBXMLSync::addAddress(XMLNode& addressNode, std::string customerListID)
 {
+    // add address from QB
+
     std::string table = "address";
 
     std::vector<std::string> columns = { "ID" }; // just getting the ID.
@@ -404,8 +417,11 @@ bool QBXMLSync::getInventory()
     return m_sql->updateConfigTime("inventory");
 }
 
+
 bool QBXMLSync::fullsync()
 {
+    // run a full sync of everything from the QB database.
+
     // check and reaffirm connection.
     if (!m_sql->isConnected()) return false;
 
@@ -427,6 +443,7 @@ bool QBXMLSync::fullsync()
 
 bool QBXMLSync::getSalesOrders()
 {
+    // pull and save sales orders from QB
 
     std::string data;
     std::string iterator;
@@ -595,6 +612,8 @@ bool QBXMLSync::getSalesOrders()
 
 bool QBXMLSync::getEstimates() 
 {
+    // pull estimates and save from QB
+
     std::string data;
     std::string iterator;
 
@@ -759,6 +778,8 @@ bool QBXMLSync::getEstimates()
 
 bool QBXMLSync::getInvoices() 
 {
+    // pull and save invoices from QB
+
 
     std::string data;
     std::string iterator;
@@ -925,6 +946,7 @@ bool QBXMLSync::getInvoices()
 
 bool QBXMLSync::getCustomers() 
 {
+    // pull and save customers from QB, also calls addAddress, which is a choke point of this application.
 
     std::string data;
     std::string iterator;
@@ -1021,7 +1043,7 @@ bool QBXMLSync::getCustomers()
 
 bool QBXMLSync::getPriceLevels() 
 {
-    //------------------------------------------------------------------------------------------------------------------------!!
+    // pull price levels from Quickbooks.
     std::string data;
     std::string iterator;
 
@@ -1078,6 +1100,8 @@ bool QBXMLSync::getPriceLevels()
 
 bool QBXMLSync::getSalesTerms() 
 {
+    // Pull sales terms from quickbooks
+
     std::string data;
     std::string iterator;
 
@@ -1135,6 +1159,8 @@ bool QBXMLSync::getSalesTerms()
 
 bool QBXMLSync::getTaxCodes() 
 {
+    // Tax codes from Quickbooks
+
     std::string data;
     std::string iterator;
 
@@ -1245,6 +1271,8 @@ bool QBXMLSync::getTaxCodes()
 
 bool QBXMLSync::getSalesReps() 
 {
+    // pull sales reps from Quickbooks
+    
     std::string data;
     std::string iterator;
 
@@ -1301,6 +1329,8 @@ bool QBXMLSync::getSalesReps()
 
 bool QBXMLSync::updateMinMax()
 {
+    // run the min/max update cycle. This applies a new minimum for every product then updates it in quickbooks.
+
     // Set the current running tally for every item in the DB, for total inventory sold for the past year, does not include assemblies.
     std::string request = "UPDATE inventory as i JOIN "
         "(SELECT i.ListID as n, SUM(x.quantity) as q FROM "
@@ -1380,6 +1410,8 @@ bool QBXMLSync::updateMinMax()
 
 bool QBXMLSync::updateMinMaxInventory(const std::string& listID, std::string& editSequence, int reorderPoint, bool max)
 {
+    // apply the update to quickbooks, for the given ID
+
     // get data required for the update. 
     std::string name = "ItemInventoryModRq";
 
@@ -1447,7 +1479,7 @@ bool QBXMLSync::updateMinMaxInventory(const std::string& listID, std::string& ed
     return true;
 }
 
-// build to allow XML files of MANY products, not just singles. Hopefully faster.
+// build to allow XML files of MANY products, not just singles. Hopefully faster. USE THIS ONE
 // ------------------------------------------------------------------------------
 
 bool QBXMLSync::updateMinMaxBatch(int batch, int daysLimit, int daysEnd) {
@@ -1775,6 +1807,8 @@ bool QBXMLSync::updateMinMaxBatch(int batch, int daysLimit, int daysEnd) {
 
 bool QBXMLSync::updateMinMaxInventory(const std::vector<std::string>& listID, std::vector<std::string>& editSequence, std::vector<int> newValue, bool max)
 {
+    // update inventory in batches to quickbooks instead of single lines, increases speed, whereas quickbooks is very slow for updates.
+
     // must be done manually and bypass the main function due to the unique construction requirements.
     std::string request{ "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
                         "<?qbxml version=\"13.0\"?>\n"
@@ -2055,7 +2089,10 @@ bool QBXMLSync::updateInventoryPartnumbers(int limit, std::string type)
     return true;
 }
 
-bool QBXMLSync::updatePartsBatch(const std::vector<std::string>& listID, std::vector<std::string>& editSequence, std::vector<std::string> newValue, std::string requestType) {
+bool QBXMLSync::updatePartsBatch(const std::vector<std::string>& listID, std::vector<std::string>& editSequence, std::vector<std::string> newValue, std::string requestType) {\
+
+    // update part numbers for requested numbers to add alteration to all numbers. 
+    // this is a limited use function that doesn't have much purpose, but may be used in the future.
     
     // must be done manually and bypass the main function due to the unique construction requirements.
     std::string request{ "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"

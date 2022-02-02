@@ -170,6 +170,8 @@ bool SQLControl::Bind(FilterPass filter)
 
 void SQLControl::handleException(sql::SQLException& e, int line, std::string fn)
 {
+    // handle exceptions that occur during processing. If possible, save to DB. 
+
     std::string error = "# ERR: SQLException in " + std::string(__FILE__) + "(" + fn + ") on line " + std::to_string(line)
         + "# ERR: " + e.what() + " (MySQL error code: " + std::to_string(e.getErrorCode()) + ", SQLState: " + e.getSQLState() + " )";
 
@@ -178,6 +180,8 @@ void SQLControl::handleException(sql::SQLException& e, int line, std::string fn)
 
 SQLControl::SQLControl(std::string password)
 {
+    // start connection to DB
+
     if (loadConnection(password)) {
         connect();
     }
@@ -190,6 +194,8 @@ SQLControl::~SQLControl()
 
 bool SQLControl::SQLSelect(std::vector<std::string> columns, std::string table, FilterPass filter, int limit, int offset, bool desc) 
 {
+    // manage a select call from DB
+
     if (!isConnected()) return false;
 
     try {
@@ -638,6 +644,9 @@ bool SQLControl::SQLDelete(std::string table, FilterPass filter)
 
 }
 
+// Update or insert values into database. This does so through an optional insert format.
+// --------------------------------------------------------------------------------------
+
 bool SQLControl::SQLUpdateOrInsert(std::string table, FilterPass updates, FilterPass filter)
 {
     if (!isConnected()) return false;
@@ -702,6 +711,8 @@ bool SQLControl::SQLComplex(std::string& request, FilterPass inserts, bool expec
     return true;
 }
 
+// config time fixes for a middle T between Date and Time, a formatting issue. 
+// ---------------------------------------------------------------------------
 std::string SQLControl::getConfigTime(std::string name)
 {
     std::vector<std::string> columns = { "Time" };
@@ -719,6 +730,8 @@ std::string SQLControl::getConfigTime(std::string name)
     
 }
 
+// update time of last sync after updates. 
+// ---------------------------------------
 bool SQLControl::updateConfigTime(std::string name)
 {
     if (!isConnected()) return false;
@@ -834,6 +847,9 @@ bool SQLControl::isConnected()
     return false;
 }
 
+// Save a log of any errors processed during transactions. good for later debug.
+// ----------------------------------------------------------------------------
+
 void SQLControl::logError(ErrorLevel level, std::string& message)
 {
     // log errors to SQL in the case of problems. 
@@ -845,6 +861,9 @@ void SQLControl::logError(ErrorLevel level, std::string& message)
     // standard insert handles the process. 
     SQLInsert("error_log", inserts);
 }
+
+// load the connection config file and initiate a connection.
+// ----------------------------------------------------------
 
 bool SQLControl::loadConnection(std::string password)
 {
@@ -907,6 +926,9 @@ bool SQLControl::loadConnection(std::string password)
 
     return true; // authentication passed.
 }
+
+// manage the actual connection
+// ----------------------------
 
 void SQLControl::connect()
 {

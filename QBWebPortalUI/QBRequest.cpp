@@ -3,6 +3,8 @@
 // open a connection
 QBRequest::QBRequest(std::string ID, std::string appName, std::string company) : m_appID{ ID }, m_appName{ appName }, m_companyFile{ company }
 {
+    // open the connection to Quickbooks and verify the connection, throw errors in the case of failure
+
     _bstr_t appID(m_appID.c_str());
     _bstr_t bappName(m_appName.c_str());
     _bstr_t bstrComFile(m_companyFile.c_str());
@@ -58,6 +60,8 @@ QBRequest::~QBRequest()
 // handle the request in quickbooks. 
 void QBRequest::processRequest(std::string& requestXML)
 {
+    // handle a request and place the information into the message handler. 
+
     if (!isSessionOn) return; // cannot process.
 
     _bstr_t bstrReqXML(requestXML.c_str());
@@ -82,6 +86,7 @@ void QBRequest::processRequest(std::string& requestXML)
         throw e;
     }
 
+    // must be manually released, or this is a memory leak.
     ::SysFreeString(bstrResXML);
 }
 
@@ -92,6 +97,8 @@ std::string QBRequest::getResponse()
 
 void QBRequest::BSTRToString(BSTR inVal, std::string& outVal)
 {
+    // manage the string conversion from bstring to string. this is a unique return type. 
+
     char* tmpVal = _com_util::ConvertBSTRToString(inVal);
 
     if (tmpVal == NULL) {
