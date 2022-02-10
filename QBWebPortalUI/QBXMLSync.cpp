@@ -124,11 +124,20 @@ int QBXMLSync::iterate(std::string& returnData, std::string& iteratorID, std::st
 
     std::string xml = XMLParser::createXMLRequest(node);
 
+    if (m_verbose) {
+        m_sql->logError(ErrorLevel::NOTICE, xml);
+    }
+
+
     // send to QB, and get return value.
     m_req.processRequest(xml);
 
     returnData.clear();
     returnData = m_req.getResponse();
+
+    if (m_verbose) {
+        m_sql->logError(ErrorLevel::NOTICE, returnData);
+    }
 
     XMLNode nodeRet;
 
@@ -291,7 +300,13 @@ bool QBXMLSync::getInventory()
 
     while (m_status->inventory > 0) {
 
-        m_status->inventory = iterate(data, iterator, "ItemQueryRq", 100, time, true);
+        m_status->inventory = iterate(data, iterator, "ItemQueryRq", (m_verbose ? 25 : 100) , time, true);
+
+        // log all messages to the DB to determine WHAT is causing the error. 
+        
+        if (m_verbose) {
+            m_sql->logError(ErrorLevel::NOTICE, data);
+        }
 
         if (!isActive()) {
             return false;
@@ -314,6 +329,11 @@ bool QBXMLSync::getInventory()
             m_sql->logError(e.error, e.data);
         }
         
+        if (m_verbose) {
+            std::string ta = "Testing at " + std::to_string(__LINE__) + ' ' + std::string(__FUNCTION__);
+            m_sql->logError(ErrorLevel::NOTICE, ta);
+        }
+
         XMLNode nodeChildren;
         node.getNodeFromPath(path, nodeChildren);
 
@@ -324,6 +344,11 @@ bool QBXMLSync::getInventory()
         // save space for all insert lines, assuming that there is sufficient numbers.
         insertsInventory.resize(nodeCount);
         
+        if (m_verbose) {
+            std::string ta = "Testing at " + std::to_string(__LINE__) + ' ' + std::string(__FUNCTION__);
+            m_sql->logError(ErrorLevel::NOTICE, ta);
+        }
+
         for (int i{ 0 }; i < nodeCount; ++i) {
             // for each child, convert and output. 
 
@@ -333,7 +358,13 @@ bool QBXMLSync::getInventory()
             insertsInventory.at(i).at(0) = { "ListID", child.getChildValue("ListID", "") };
             insertsInventory.at(i).at(1) = { "TimeCreated", child.getChildValue("TimeCreated", "") };
 
-            insertsInventory.at(i).at(2) = { "TimeModified", child.getChildValue("TimeModified", "") };
+            // adjustment to fix the 0000-00-00 error caused by 2022 quickbooks.
+            if (child.getChildValue("TimeModified", "") == "0000-00-00") {
+                insertsInventory.at(i).at(2) = { "TimeModified", child.getChildValue("TimeCreated", "") };
+            }
+            else {
+                insertsInventory.at(i).at(2) = { "TimeModified", child.getChildValue("TimeModified", "") };
+            }
             insertsInventory.at(i).at(3) = { "Name", child.getChildValue("Name", "") };
             insertsInventory.at(i).at(4) = { "SKU", child.getChildValue("FullName", "") };
             insertsInventory.at(i).at(5) = { "ProductType", child.getName() };
@@ -395,6 +426,11 @@ bool QBXMLSync::getInventory()
 
         }
 
+        if (m_verbose) {
+            std::string ta = "Testing at " + std::to_string(__LINE__) + ' ' + std::string(__FUNCTION__);
+            m_sql->logError(ErrorLevel::NOTICE, ta);
+        }
+
         // run the actual inserts here 
         if (!m_sql->SQLMassInsert(table, insertsInventory)) {
             std::string err = "Mass Insert/Update inventory Failed " + table + " File: " + __FILE__ + " Line: " + std::to_string(__LINE__) + " Data: " + data;
@@ -404,6 +440,11 @@ bool QBXMLSync::getInventory()
             // on a success only, do we add the child lines. 
             table = "assembly_lineitems";
 
+            if (m_verbose) {
+                std::string ta = "Testing after inventory insert at " + std::to_string(__LINE__) + ' ' + std::string(__FUNCTION__);
+                m_sql->logError(ErrorLevel::NOTICE, ta);
+            }
+
             if (childInserts.size() > 0) {
                 // only run this in the case of child inserts to be entered.
                 if (!m_sql->SQLMassInsert(table, childInserts)) {
@@ -411,6 +452,11 @@ bool QBXMLSync::getInventory()
                     m_sql->logError(ErrorLevel::NOTICE, err);
                 }
             }
+        }
+
+        if (m_verbose) {
+            std::string ta = "Testing at " + std::to_string(__LINE__) + ' ' + std::string(__FUNCTION__);
+            m_sql->logError(ErrorLevel::NOTICE, ta);
         }
     }
 

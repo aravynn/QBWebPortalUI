@@ -49,6 +49,7 @@ private:
 	QBRequest m_req;	// connects to QB and handles any collection and return. 
 	std::shared_ptr<bool> m_isActive; // bool for determining the status of the run. will be defaulted to TRUE externally.
 	std::shared_ptr<TransferStatus> m_status;
+	bool m_verbose = false ;
 
 	void updateInventoryMinMax(std::string ListID, int min); // per line, update the min/max, to minimum, 0.
 
@@ -58,6 +59,7 @@ private:
 	int addAddress(XMLNode& addressNode, std::string customerListID);
 
 	bool isActive();
+
 public:
 	QBXMLSync(std::string QBID, std::string appName, std::string password, std::shared_ptr<TransferStatus> status = nullptr, std::shared_ptr<bool> active = nullptr);	// generate the SQL and request items. 
 	~QBXMLSync();

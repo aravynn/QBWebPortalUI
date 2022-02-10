@@ -1,0 +1,53 @@
+Documentation for the QBXML Web Connector (QBWebportalUI)
+
+This application is designed for the transfer and saving of information from quickbooks to an online MySQL database. This also includes the functionality to update inventory minimums based on order averages.
+
+Note that while MySQL connection is relatively fast, it should be noted that QuickBooks XML system is painfully slow, for most calls. This is likely due to security and safety checks on data before insertion, however this bottle neck results in most of the waiting time associated with the application. 
+
+Dependencies: 
+	MySQL Connector
+	QBXMLRP2
+	
+Pages
+	main page
+		the core of the application, this view displays all current statuses as well as controls for the main portions of the program.
+			Next sync run: Next time the sync application is set to run. Will load automatically with a 15 minute delay
+			Interval: Allows you to alter the time between runs. Note: must press start to activate
+			Start/Stop: Starts or ends the sync application. resets the sync time for next run
+			Min/max daily sync: Loads the next time that the minmax operation will run. 
+			Edit time: Loads the minmax run time menu window
+			Run Now/Stop: Starts the min max program or stops it prematurely. If stopped or forced stopped, can be started again without issue. 
+			Sync status: These 6 areas display the current status of the sync. When running, they will show not run or complete if a run has been complted, or will show the number of lines left. 
+			Minmax will show multiple laines to show the current area of progression within the loading. 
+	Password
+		The password page loads a password to decrypt the configuration file and attempt to log in to MySQL with the given information. Should this fail, it will prompt an error and load the connect screen. Additionally, if no quickbooks file is loaded, it will also prompt an error to quit and reload. a password should always be set for this application, as it is used to generate the encryption of the main file. There is no limitation on complexity for the password, the default used currently is "mepbro"
+	Connect
+		This screen is only for initial setup, and requests the data needed to load a database. The IP is in format TCP://0.0.0.0:3306. Username and password are for the SQL database, and the local password is for the password page for this app. database name is the database to load. 
+	timereset
+		This page allows the user to set a new time and date for syncing database information from quickbooks. the user selects what section to update, then sets a date and time. Nexst time information is synced from quickbooks, that section will load all data from quickbooks from that date forward, to allow skipping or reloading information previously called from quickbooks. Since the application auto-updates or inserts missing information, this can be used to correct potential issues in the web database, or can also be used following a database TRUNCATE to reload the database.
+	minmaxruntime
+		This allows the user to set the next time that minmax will be run automatically. This application should always run overnight when staff are not at work, to prevent possible issues of open or active inventory items, which causes the app to crash. The default time at load is 5:30, which should be after everyone has left. If this application does crash or fail, the application will stop the procedure, which can simply be run again later. The app will attempt to rerun at the next available time again to complete the process.
+	limit minmax load date
+		This sets the starting date that the minmax application loads from. Since minmax will extrapolate for any information less than a year, this can be used to prep from a smaller subset of data. Note that at least 3 months are required, or the application will throw an error. Additionally, if the query is more than 1 year in length, then the default 1 year will be assumed. Default date is December 1, 2021, which is when the new quickboks file was created. Works in tandem with: 
+	set last minmax load date
+		This sets the last date that the minmax application will load data for when considering the span required for calculation. Like the above, 3 months are required, and if the 2 dates are longer than a year, then 1 year back from this date will be considered. The default value for this is NOW() unless this is specified. 
+Classes
+	QBRequest
+		This function manages the requests that are sent to quickbooks from the application. Build on the QBXMLRP2 dll as supplied from quickbooks, this class creates XML requests using the XML node and XML parser classes, sends the data, then returns the results to the calling class.
+	qbsyncthreads
+		This is async threading for the application, that will load and run the main Quickbooks and MySQL logic while being able to update and manage the GUI
+	qbui
+		This class acts as a go-between for the main user interface (primarily a C construct) and the OOP layer of the application. This handles calling the classes and user access from UI buttons and forms. 
+	qbwebportalui
+		This is the main code of the application UI, and entry point to the application. Primarily written in C, this is a Win32 based application, (NOT MFC) and features the interactivity for the main screen as well as all modal windows. 
+	qbxmlsync
+		This class manages all functions for data collection and transfer. options exist for most calls in doing them as a single or multi-call queries, so if changes are made be sure to do to to any "batch" functions. Note that single call functions are largely deprecated due to the fact that quickbooks is so slow on sending and receiving data. This makes for a bad bottleneck.
+	sqlcontrol
+		This class handles all access and queries to the MySQL database online, including making the actual physical connection to the database. This includes simple calls for insert update select, search and delete, as well as insert or update for mass insert as well as a "complex" option to send mostly uncontrolled SQL statements to the database. Complex can still be used with binding variables, hoewever this is optional. use complex with caution.
+	xmlnode
+		This class works in tandem with the XML parser class, to manage XML calls and parse the data into structures for later reading for insert, queries etc. This uses a limked list style system to determine data structure, and read or print values.
+	xmlparser
+		This function takes a raw string input in the form of XML(and only properly formatted XML) and converts the data to a series of XML nodes with a structure designed for easy reading and parsing into whatever the end goal may be.
+		
+Storage: 
+	This application stores no direct information, save for a config file that is stored in its default install location.

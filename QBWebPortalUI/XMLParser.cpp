@@ -173,6 +173,11 @@ std::vector<std::pair<std::string, std::string>> XMLParser::parseAttributes(std:
 				ss.str(std::string());
 			}
 			break;
+		case '\t':
+			// I think this is the breaking factor for parsing new XML
+			ss << ' '; // add a space instead of a tab.
+
+			break;
 		default:
 			ss << data.at(i);
 			break;

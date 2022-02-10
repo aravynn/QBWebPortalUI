@@ -85,64 +85,69 @@ bool SQLControl::Bind(FilterPass filter)
                 // 0000000000111111111122222
                 // 0123456789012345678901234
 
-                std::vector<int> daysOfMonth{ 0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }; // I mean, screw leap days.
+                if (f.second.str != "0000-00-00") {
 
-                std::string d = f.second.str; // simpler naming.
-                int year, month, day, hour, minute, second;
+                    std::vector<int> daysOfMonth{ 0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }; // I mean, screw leap days.
 
-                year = std::stoi(d.substr(0, 4));
-                month = std::stoi(d.substr(5, 2));
-                day = std::stoi(d.substr(8, 2));
-                hour = std::stoi(d.substr(11, 2));
-                minute = std::stoi(d.substr(14, 2));
-                second = std::stoi(d.substr(17, 2));
-                
-                // apply offset 
-                int offset = std::stoi(d.substr(20, 2));
-                if (d.at(19) == '-') {
-                    // negative offset, remove the hours
-                    hour -= offset;
-                    if (hour < 0) {
-                        hour += 24;
-                        day--;
-                        if (day < 1) {
-                            day = daysOfMonth.at(month - 1); 
-                            month -= 1;
-                            if (month == 0) {
-                                month = 12;
-                                year--;
+                    std::string d = f.second.str; // simpler naming.
+                    int year, month, day, hour, minute, second;
+
+                    year = std::stoi(d.substr(0, 4));
+                    month = std::stoi(d.substr(5, 2));
+                    day = std::stoi(d.substr(8, 2));
+                    hour = std::stoi(d.substr(11, 2));
+                    minute = std::stoi(d.substr(14, 2));
+                    second = std::stoi(d.substr(17, 2));
+
+                    // apply offset 
+                    int offset = std::stoi(d.substr(20, 2));
+                    if (d.at(19) == '-') {
+                        // negative offset, remove the hours
+                        hour -= offset;
+                        if (hour < 0) {
+                            hour += 24;
+                            day--;
+                            if (day < 1) {
+                                day = daysOfMonth.at(month - 1);
+                                month -= 1;
+                                if (month == 0) {
+                                    month = 12;
+                                    year--;
+                                }
                             }
                         }
                     }
-                }
-                else {
-                    // positive offset, add the hours
-                    hour += offset;
-                    if (hour > 23) {
-                        hour -= 24;
-                        day++;
-                        if (day > daysOfMonth.at(month)) {
-                            day -= daysOfMonth.at(month);
-                            month++;
-                            if (month > 12) {
-                                month -= 12;
-                                year++;
+                    else {
+                        // positive offset, add the hours
+                        hour += offset;
+                        if (hour > 23) {
+                            hour -= 24;
+                            day++;
+                            if (day > daysOfMonth.at(month)) {
+                                day -= daysOfMonth.at(month);
+                                month++;
+                                if (month > 12) {
+                                    month -= 12;
+                                    year++;
+                                }
                             }
                         }
                     }
+
+                    // reconstruct and reset the time for insert.
+                    std::stringstream ss;
+                    ss << std::setfill('0') <<
+                        std::setw(4) << year << '-' <<
+                        std::setw(2) << month << '-' <<
+                        std::setw(2) << day << ' ' <<
+                        std::setw(2) << hour << ':' <<
+                        std::setw(2) << minute << ':' <<
+                        std::setw(2) << second;
+
+                    f.second.str = ss.str();
+                } else {
+                    f.second.str = "0000-00-00 00:00:00";
                 }
-
-                // reconstruct and reset the time for insert.
-                std::stringstream ss;
-                ss << std::setfill('0') <<
-                    std::setw(4) << year << '-' <<
-                    std::setw(2) << month << '-' <<
-                    std::setw(2) << day << ' ' <<
-                    std::setw(2) << hour << ':' <<
-                    std::setw(2) << minute << ':' <<
-                    std::setw(2) << second;
-
-                f.second.str = ss.str();
             }
             
 
